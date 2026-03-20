@@ -1,21 +1,18 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, View, Button } from "react-native";
 import { Accelerometer } from "expo-sensors";
 
-export default function HomeScreen() {
+export default function App() {
 
   const [data, setData] = useState({ x: 0, y: 0, z: 0 });
+  const [subscription, setSubscription] = useState(null);
   const [event, setEvent] = useState("No Event");
-  const [subscription, setSubscription] = useState<any>(null);
   const [monitoring, setMonitoring] = useState(false);
 
   const THRESHOLD = 1.5;
 
-  const startMonitoring = () => {
-    setMonitoring(true);
-
+  const subscribe = () => {
     const sub = Accelerometer.addListener(accelerometerData => {
-
       setData(accelerometerData);
 
       const magnitude = Math.sqrt(
@@ -29,34 +26,57 @@ export default function HomeScreen() {
       } else {
         setEvent("Safe Driving");
       }
-
     });
 
     setSubscription(sub);
   };
 
-  const stopMonitoring = () => {
+  const unsubscribe = () => {
     subscription && subscription.remove();
+    setSubscription(null);
+  };
+
+  const startMonitoring = () => {
+    setMonitoring(true);
+    subscribe();
+  };
+
+  const stopMonitoring = () => {
     setMonitoring(false);
+    unsubscribe();
     setEvent("No Event");
   };
 
   return (
     <View style={styles.container}>
 
-      <Text style={styles.title}>Smart Driving Monitor</Text>
+      <Text style={styles.title}>
+        Smart Driving Monitor
+      </Text>
 
-      <Text style={styles.event}>{event}</Text>
+      <Text style={styles.event}>
+        {event}
+      </Text>
 
       <Text>X: {data.x.toFixed(2)}</Text>
       <Text>Y: {data.y.toFixed(2)}</Text>
       <Text>Z: {data.z.toFixed(2)}</Text>
 
-      {!monitoring ? (
-        <Button title="Start Driving" onPress={startMonitoring} />
-      ) : (
-        <Button title="Stop Driving" onPress={stopMonitoring} />
-      )}
+      <View style={{ marginTop: 20 }}>
+
+        {!monitoring ? (
+          <Button
+            title="Start Driving"
+            onPress={startMonitoring}
+          />
+        ) : (
+          <Button
+            title="Stop Driving"
+            onPress={stopMonitoring}
+          />
+        )}
+
+      </View>
 
     </View>
   );
@@ -66,9 +86,9 @@ const styles = StyleSheet.create({
 
   container: {
     flex: 1,
+    backgroundColor: "#f2f2f2",
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#f2f2f2"
+    justifyContent: "center"
   },
 
   title: {
@@ -79,8 +99,8 @@ const styles = StyleSheet.create({
 
   event: {
     fontSize: 20,
-    color: "red",
-    marginBottom: 20
+    marginBottom: 20,
+    color: "red"
   }
 
 });
