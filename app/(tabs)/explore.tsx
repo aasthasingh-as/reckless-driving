@@ -1,112 +1,302 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from "react";
+import { StyleSheet, Text, View, ScrollView, Pressable, Modal, ActivityIndicator } from "react-native";
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+const API_BASE_URL = "http://localhost:5000/api"; // Adjust to IP for physical device
 
-export default function TabTwoScreen() {
+export default function TripHistoryScreen() {
+  const [trips, setTrips] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedTrip, setSelectedTrip] = useState<any>(null);
+  const [tripEvents, setTripEvents] = useState<any[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
+
+  // Fetch all trips using GET /api/trips
+  const fetchTrips = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/trips`);
+      const data = await res.json();
+      if (data.success) {
+        setTrips(data.trips);
+      }
+    } catch (err) {
+      console.log("Failed to fetch trips", err);
+    }
+    setLoading(false);
+  };
+
+  // Run on mount
+  useEffect(() => {
+    fetchTrips();
+  }, []);
+
+  // Fetch events on press
+  const openTripDetails = async (trip: any) => {
+    setSelectedTrip(trip);
+    setEventsLoading(true);
+    setTripEvents([]); // Clear previous events
+    try {
+      const res = await fetch(`${API_BASE_URL}/trips/${trip._id}/events`);
+      const data = await res.json();
+      if (data.success) {
+        setTripEvents(data.events);
+      }
+    } catch (err) {
+      console.log("Failed to fetch events", err);
+    }
+    setEventsLoading(false);
+  };
+
+  const closeDetails = () => {
+    setSelectedTrip(null);
+    setTripEvents([]);
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <View style={styles.container}>
+      <Text style={styles.heading}>Trip History</Text>
+      <Text style={styles.subheading}>Review your past drives</Text>
+
+      <Pressable onPress={fetchTrips} style={styles.refreshBtn}>
+        <Text style={styles.refreshText}>↻ Refresh Trips</Text>
+      </Pressable>
+
+      {loading ? (
+        <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 40 }} />
+      ) : (
+        <ScrollView contentContainerStyle={styles.list}>
+          {trips.length === 0 ? (
+            <Text style={styles.emptyText}>No trips logged yet. Start driving!</Text>
+          ) : (
+            trips.map((trip) => (
+              <Pressable key={trip._id} style={styles.card} onPress={() => openTripDetails(trip)}>
+                <Text style={styles.dateText}>{new Date(trip.startTime).toLocaleString()}</Text>
+                
+                <View style={styles.row}>
+                  <Text style={styles.statLabel}>Score:</Text>
+                  <Text style={[styles.statValue, { color: trip.finalSafetyScore >= 70 ? "#16a34a" : "#dc2626" }]}>
+                    {trip.finalSafetyScore}/100
+                  </Text>
+                </View>
+
+                <View style={styles.row}>
+                  <Text style={styles.statLabel}>Top Speed:</Text>
+                  <Text style={styles.statValue}>{trip.topSpeed.toFixed(1)} km/h</Text>
+                </View>
+
+                <Text style={styles.tapText}>Tap to view events →</Text>
+              </Pressable>
+            ))
+          )}
+        </ScrollView>
+      )}
+
+      {/* Deep-Dive Trip Details Modal */}
+      <Modal visible={!!selectedTrip} animationType="fade" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalHeading}>Trip Details</Text>
+            
+            {selectedTrip && (
+              <>
+                <Text style={styles.modalDate}>{new Date(selectedTrip.startTime).toLocaleString()}</Text>
+                <View style={styles.row}>
+                  <Text style={styles.statLabel}>Final Score:</Text>
+                  <Text style={[styles.statValue, { color: selectedTrip.finalSafetyScore >= 70 ? "#16a34a" : "#dc2626" }]}>
+                    {selectedTrip.finalSafetyScore}
+                  </Text>
+                </View>
+                <View style={styles.row}>
+                  <Text style={styles.statLabel}>Top Speed:</Text>
+                  <Text style={[styles.statValue]}>{selectedTrip.topSpeed.toFixed(1)} km/h</Text>
+                </View>
+                
+                <Text style={styles.eventsHeading}>Timeline of Events ({tripEvents.length})</Text>
+                
+                <ScrollView style={styles.eventsList}>
+                  {eventsLoading ? (
+                    <ActivityIndicator size="small" color="#2563eb" />
+                  ) : tripEvents.length === 0 ? (
+                    <Text style={styles.perfectTrip}>Perfect Trip! No unsafe events.</Text>
+                  ) : (
+                    tripEvents.map((evt: any, idx) => (
+                      <View key={evt._id || idx} style={styles.eventRow}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.eventName}>{evt.eventType}</Text>
+                          {evt.speed !== undefined && (
+                            <Text style={styles.eventMeta}>{evt.speed.toFixed(1)} km/h</Text>
+                          )}
+                        </View>
+                        <Text style={styles.eventTime}>{new Date(evt.timestamp).toLocaleTimeString()}</Text>
+                      </View>
+                    ))
+                  )}
+                </ScrollView>
+              </>
+            )}
+            <Pressable style={styles.closeBtn} onPress={closeDetails}>
+              <Text style={styles.closeBtnText}>Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
+    backgroundColor: "#f4f7fb",
+    padding: 24,
+    paddingTop: 60,
   },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
+  heading: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#1f2937",
+    textAlign: "center",
+  },
+  subheading: {
+    fontSize: 16,
+    color: "#6b7280",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  refreshBtn: {
+    alignSelf: "center",
+    backgroundColor: "#dbeafe",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
+  refreshText: {
+    color: "#2563eb",
+    fontWeight: "700",
+  },
+  emptyText: {
+    textAlign: "center",
+    color: "#6b7280",
+    marginTop: 40,
+    fontSize: 16,
+  },
+  list: {
+    paddingBottom: 40,
+  },
+  card: {
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 16,
+    elevation: 3,
+  },
+  dateText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1f2937",
+    marginBottom: 12,
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  statLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#4b5563",
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  tapText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#2563eb",
+    fontWeight: "600",
+    textAlign: "right",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    padding: 24,
+  },
+  modalCard: {
+    backgroundColor: "white",
+    borderRadius: 24,
+    padding: 24,
+    maxHeight: "85%",
+  },
+  modalHeading: {
+    fontSize: 26,
+    fontWeight: "800",
+    textAlign: "center",
+    color: "#111827",
+  },
+  modalDate: {
+    fontSize: 16,
+    color: "#6b7280",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  eventsHeading: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111827",
+    marginTop: 20,
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+    paddingBottom: 8,
+  },
+  eventsList: {
+    maxHeight: 250,
+  },
+  eventRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+    paddingHorizontal: 4,
+  },
+  eventName: {
+    fontSize: 16,
+    color: "#dc2626",
+    fontWeight: "700",
+  },
+  eventMeta: {
+    fontSize: 14,
+    color: "#2563eb",
+    marginTop: 2,
+    fontWeight: "600",
+  },
+  eventTime: {
+    fontSize: 14,
+    color: "#4b5563",
+    fontWeight: "500",
+  },
+  perfectTrip: {
+    textAlign: "center",
+    color: "#16a34a",
+    fontSize: 16,
+    fontWeight: "600",
+    marginTop: 20,
+  },
+  closeBtn: {
+    backgroundColor: "#1f2937",
+    padding: 16,
+    borderRadius: 14,
+    marginTop: 20,
+    alignItems: "center",
+  },
+  closeBtnText: {
+    color: "white",
+    fontWeight: "700",
+    fontSize: 16,
   },
 });
