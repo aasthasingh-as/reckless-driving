@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const EventSchema = new mongoose.Schema({
   tripId: { type: mongoose.Schema.Types.ObjectId, ref: 'Trip', required: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   eventType: { type: String, required: true },
   timestamp: { type: Date, default: Date.now },
   magnitude: { type: Number },
