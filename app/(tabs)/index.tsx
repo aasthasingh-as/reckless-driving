@@ -50,7 +50,7 @@ export default function HomeScreen() {
   const tripIdRef = useRef<string | null>(null);
   const latestSpeedRef = useRef(0);
   const latestLocationRef = useRef({ latitude: 0, longitude: 0 });
-  const API_BASE_URL = "http://localhost:5000/api";
+  const API_BASE_URL = "http://192.168.58.165:5001/api";
 
   const smoothedAccRef = useRef({ x: 0, y: 0, z: 0 });
   const smoothedGyroRef = useRef({ x: 0, y: 0, z: 0 });

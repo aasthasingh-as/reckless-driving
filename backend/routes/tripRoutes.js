@@ -40,6 +40,7 @@ router.post('/end/:tripId', async (req, res) => {
 
 // GET /api/trips
 router.get('/', async (req, res) => {
+  console.log('GET /api/trips hit');
   try {
     const trips = await Trip.find().sort({ startTime: -1 });
     res.json({ success: true, trips });
